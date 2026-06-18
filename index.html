@@ -296,7 +296,7 @@
         <h2 class="modal-title">🎉 Великий виграш! 🎉</h2>
         <div class="modal-prize" id="modal-prize-val">0 UA</div>
         <p class="modal-desc">
-            Ваш гаманець та сума зафіксовані. Натисніть кнопку нижче, щоб автоматично надіслати заявку в наш бот виплат.
+            Ваш гаманець та сума зафіксовані. Натисніть кнопку ниже, щоб автоматично надіслати заявку в наш бот виплат.
         </p>
         <a id="modal-claim-link" href="#" target="_blank" class="btn-modal-claim" onclick="closeWinModal()">
             Отримати виплату в боті 🚀
@@ -552,23 +552,23 @@
         }, 800);
     }
 
-    // ОНОВЛЕНА ФУНКЦІЯ АВТО-ЗАПОВНЕННЯ ТЕКСТУ
+    // ФУНКЦІЯ АВТО-ЗАПОВНЕННЯ З ПРАВИЛЬНОЮ НАЗВОЮ ПРОЕКТУ
     function triggerWithdrawalModal(prizeAmount) {
         let userWallet = "Не підключено";
         if (tonConnectUI.account && tonConnectUI.account.address) {
             userWallet = tonConnectUI.account.address;
         }
 
-        const gameName = "UA GOLDEN HUB"; // Змінив назву проекту під твій хаб з фото
+        const gameName = "UA Lottery 5 із 36"; 
         
-        // Формуємо текст повідомлення точно як у твоєму прикладі
+        // Формуємо красивий текст повідомлення
         const messageText = `💰 Сума: ${prizeAmount} UA\n💳 Гаманець: ${userWallet}\n🎮 Проект: ${gameName}`;
         
-        // Кодуємо спецсимволи та пробіли для посилання
+        // Безпечно кодуємо текст під формат посилань Telegram
         const encodedText = encodeURIComponent(messageText);
         
-        // Посилання, яке самостійно пише текст у віконце введення
-        const telegramBotLink = `https://t.me/tokenpist_bot?text=${encodedText}`;
+        // Надійне офіційне share-посилання Telegram, що вставляє текст у поле введення
+        const telegramBotLink = `https://t.me/share/url?url=https://t.me/tokenpist_bot&text=${encodedText}`;
         
         document.getElementById('modal-prize-val').innerText = `${prizeAmount} UA`;
         document.getElementById('modal-claim-link').href = telegramBotLink;
@@ -599,14 +599,13 @@
             msgElement.style.color = '#10b981';
             msgElement.innerText = `Вгадано чисел: ${matches}! Ваш виграш: +${prize} UA 🎉`;
             
-            if (matches >= 4) {
+            // Вікно виведення з'являється СУВОРО від 1500 UA і вище
+            if (prize >= 1500) {
                 playEpicWinSound();
                 setTimeout(() => { triggerWithdrawalModal(prize); }, 1500);
             } else {
+                // Для 50 та 250 UA просто додаємо на ігровий баланс без модалки
                 playWinSound();
-                if (prize >= 250) {
-                    setTimeout(() => { triggerWithdrawalModal(prize); }, 1500);
-                }
             }
         } else {
             msgElement.style.color = '#ef4444';
