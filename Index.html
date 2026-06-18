@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>UA Lottery 5 із 36</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+            color: #fbbf24;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+        .stats-panel {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 10px 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .stat-val {
+            font-weight: bold;
+            color: #38bdf8;
+        }
+        /* Ігрове поле з номерами */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            aspect-ratio: 1;
+            background: #334155;
+            border: 2px solid #475569;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .cell:active {
+            transform: scale(0.9);
+        }
+        .cell.selected {
+            background: #f59e0b;
+            border-color: #fbbf24;
+            color: #0f172a;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+        /* Зона лототрону */
+        .drum-section {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        .ball-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            min-height: 54px;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .result-ball {
+            width: 44px;
+            height: 44px;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #2563eb);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        /* Кнопки керування */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-primary {
+            background: #10b981;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .btn-primary:not(:disabled):active {
+            background: #059669;
+            transform: translateY(2px);
+        }
+        .btn-secondary {
+            background: #475569;
+            color: #f8fafc;
+        }
+        .btn-secondary:active {
+            background: #334155;
+        }
+        /* Екран результату */
+        .message-box {
+            font-size: 16px;
+            font-weight: 500;
+            min-height: 24px;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>UA LOTTERY</h1>
+    <div class="subtitle">Обери 5 чисел із 36</div>
+
+    <div class="stats-panel">
+        <div>Баланс: <span id="balance" class="stat-val">1000</span> ₴</div>
+        <div>Ставка: <span class="stat-val">50</span> ₴</div>
+    </div>
+
+    <!-- Ігрова сітка -->
+    <div class="grid" id="lottery-grid"></div>
+
+    <div class="btn-group">
+        <button class="btn-secondary" id="btn-auto" onclick="autoSelect()">Автовибір</button>
+        <button class="btn-secondary" id="btn-clear" onclick="clearSelection()">Очистити</button>
+    </div>
+
+    <!-- Лототрон -->
+    <div class="drum-section">
+        <div id="drum-status">Лототрон готовий до розіграшу</div>
+        <div class="ball-container" id="winning-balls"></div>
+    </div>
+
+    <button class="btn-primary" id="btn-play" onclick="startRaffle()" disabled>Зробити ставку</button>
+    
+    <div class="message-box" id="message" style="margin-top: 15px;"></div>
+</div>
+
+<script>
+    const TOTAL_NUMBERS = 36;
+    const REQUIRED_SELECTION = 5;
+    const TICKET_COST = 50;
+    
+    let selectedNumbers = [];
+    let balance = 1000;
+    let isPlaying = false;
+
+    // Створення сітки квитка
+    const grid = document.getElementById('lottery-grid');
+    for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.innerText = i;
+        cell.onclick = () => toggleNumber(i, cell);
+        grid.appendChild(cell);
+    }
+
+    // Вибір/скасування числа
+    function toggleNumber(num, cellElement) {
+        if (isPlaying) return;
+        playSound(440, 0.05); // Короткий клік
+
+        const index = selectedNumbers.indexOf(num);
+        if (index > -1) {
+            selectedNumbers.splice(index, 1);
+            cellElement.classList.remove('selected');
+        } else {
+            if (selectedNumbers.length >= REQUIRED_SELECTION) return;
+            selectedNumbers.push(num);
+            cellElement.classList.add('selected');
+        }
+        updatePlayButtonState();
+    }
+
+    function updatePlayButtonState() {
+        const btnPlay = document.getElementById('btn-play');
+        btnPlay.disabled = selectedNumbers.length !== REQUIRED_SELECTION || isPlaying;
+    }
+
+    // Автоматичний вибір 5 випадкових чисел
+    function autoSelect() {
+        if (isPlaying) return;
+        clearSelection();
+        while (selectedNumbers.length < REQUIRED_SELECTION) {
+            const rand = Math.floor(Math.random() * TOTAL_NUMBERS) + 1;
+            if (!selectedNumbers.includes(rand)) {
+                selectedNumbers.push(rand);
+            }
+        }
+        const cells = document.querySelectorAll('.cell');
+        selectedNumbers.forEach(num => {
+            cells[num - 1].classList.add('selected');
+        });
+        updatePlayButtonState();
+        playSound(587.33, 0.1);
+    }
+
+    // Очищення вибору
+    function clearSelection() {
+        if (isPlaying) return;
+        selectedNumbers = [];
+        document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('selected'));
+        updatePlayButtonState();
+    }
+
+    // Запуск розіграшу лототрону
+    function startRaffle() {
+        if (balance < TICKET_COST) {
+            document.getElementById('message').innerText = "Недостатньо балансу для ставки!";
+            return;
+        }
+
+        isPlaying = true;
+        balance -= TICKET_COST;
+        document.getElementById('balance').innerText = balance;
+        updatePlayButtonState();
+        
+        document.getElementById('message').innerText = "";
+        document.getElementById('drum-status').innerText = "Лототрон перемішує кульки...";
+        const ballContainer = document.getElementById('winning-balls');
+        ballContainer.innerHTML = '';
+
+        // Генеруємо 5 виграшних кульок
+        let winningNumbers = [];
+        while (winningNumbers.length < REQUIRED_SELECTION) {
+            const rand = Math.floor(Math.random() * TOTAL_NUMBERS) + 1;
+            if (!winningNumbers.includes(rand)) {
+                winningNumbers.push(rand);
+            }
+        }
+
+        // Анімація почергового випадіння кульок
+        let step = 0;
+        const interval = setInterval(() => {
+            if (step < REQUIRED_SELECTION) {
+                const ball = document.createElement('div');
+                ball.className = 'result-ball';
+                ball.innerText = winningNumbers[step];
+                ballContainer.appendChild(ball);
+                
+                playSound(880, 0.15); // Звук випадіння кульки
+                step++;
+            } else {
+                clearInterval(interval);
+                checkResults(winningNumbers);
+            }
+        }, 800); // Кожна кулька випадає через 0.8 сек
+    }
+
+    // Перевірка збігів та нарахування виграшу
+    function checkResults(winningNumbers) {
+        const matches = selectedNumbers.filter(num => winningNumbers.includes(num)).length;
+        let prize = 0;
+
+        if (matches === 2) prize = 50;
+        else if (matches === 3) prize = 250;
+        else if (matches === 4) prize = 1500;
+        else if (matches === 5) prize = 50000; // Джекпот
+
+        balance += prize;
+        document.getElementById('balance').innerText = balance;
+        document.getElementById('drum-status').innerText = "Розіграш завершено!";
+        
+        const msgElement = document.getElementById('message');
+        if (prize > 0) {
+            msgElement.style.color = '#10b981';
+            msgElement.innerText = `Вгадано чисел: ${matches}! Ваш виграш: +${prize} ₴ 🎉`;
+            playWinSound();
+        } else {
+            msgElement.style.color = '#ef4444';
+            msgElement.innerText = `Вгадано чисел: ${matches}. Пощастить наступного разу!`;
+            playSound(220, 0.3); // Звук програшу
+        }
+
+        isPlaying = false;
+        updatePlayButtonState();
+    }
+
+    // Синтезатор звуків через Web Audio API
+    function playSound(frequency, duration) {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.value = frequency;
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        } catch(e) { console.log("Аудіо не підтримується"); }
+    }
+
+    function playWinSound() {
+        playSound(523.25, 0.1); setTimeout(() => playSound(659.25, 0.1), 100);
+        setTimeout(() => playSound(783.99, 0.1), 200); setTimeout(() => playSound(1046.50, 0.2), 300);
+    }
+</script>
+
+</body>
+</html>
