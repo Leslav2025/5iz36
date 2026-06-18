@@ -270,7 +270,7 @@
         startRaffle();
     }
 
-    // Оновлена функція з миттєвим зарахуванням UA після підтвердження в Tonkeeper
+    // НАДІЙНА ФУНКЦІЯ: Нараховує монети ОДРАЗУ після успішного виклику гаманця
     async function buyCoinsWithTon() {
         if (!tonConnectUI.connected) {
             alert("Будь ласка, спочатку підключіть свій TON-гаманець кнопкою у верхньому правому кутку!");
@@ -278,10 +278,10 @@
         }
 
         document.getElementById('message').style.color = '#38bdf8';
-        document.getElementById('message').innerText = "Відкриваємо гаманець... Будь ласка, підтвердіть оплату.";
+        document.getElementById('message').innerText = "Відкриваємо гаманець... Підтвердіть оплату.";
 
         const transaction = {
-            validUntil: Math.floor(Date.now() / 1000) + 120, // 2 хвилини на підтвердження
+            validUntil: Math.floor(Date.now() / 1000) + 120,
             messages: [
                 {
                     address: MY_TON_WALLET,
@@ -291,20 +291,21 @@
         };
 
         try {
-            const result = await tonConnectUI.sendTransaction(transaction);
+            // Запускаємо транзакцію в Tonkeeper / MyTonWallet
+            await tonConnectUI.sendTransaction(transaction);
             
-            // Як тільки користувач підписав транзакцію у гаманці — одразу даємо 1000 UA
-            if (result) {
-                balance += 1000;
-                document.getElementById('balance').innerText = balance;
-                document.getElementById('message').style.color = '#10b981';
-                document.getElementById('message').innerText = "Оплату надіслано! Тобі нараховано +1000 UA 💎";
-                updatePlayButtonState();
-            }
+            // Оскільки sendTransaction повертає результат лише ПІСЛЯ того, як користувач підтвердив оплату у додатку гаманця:
+            // Ми МИТТЄВО додаємо монети без зайвих перевірок блокчейну
+            balance += 1000;
+            document.getElementById('balance').innerText = balance;
+            document.getElementById('message').style.color = '#10b981';
+            document.getElementById('message').innerText = "Успішно! Нараховано +1000 UA 💎";
+            updatePlayButtonState();
+
         } catch (error) {
             console.error(error);
             document.getElementById('message').style.color = '#ef4444';
-            document.getElementById('message').innerText = "Помилка або оплату скасовано гаманцем.";
+            document.getElementById('message').innerText = "Оплату скасовано або стався збій у гаманці.";
         }
     }
 
