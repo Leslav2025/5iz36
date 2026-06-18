@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>UA Lottery 5 із 36 + TON</title>
+    <!-- Підключаємо офіційний TON Connect UI -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         * {
@@ -201,13 +202,13 @@
 
     <button class="btn-primary" id="btn-play" onclick="handlePlayClick()" disabled>Зробити ставку</button>
     
+    <!-- Кнопка купівлі монет UA -->
     <button class="btn-ton-pay" id="btn-buy-coins" onclick="buyCoinsWithTon()">Поповнити: 1000 UA за 0.01 TON</button>
     
     <div class="message-box" id="message"></div>
 </div>
 
 <script>
-    // ТВІЙ ГАМАНЕЦЬ ДЛЯ ОТРИМАННЯ ОПЛАТИ
     const MY_TON_WALLET = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw"; 
 
     const TOTAL_NUMBERS = 36;
@@ -215,7 +216,11 @@
     const TICKET_COST = 50;
     
     let selectedNumbers = [];
-    let balance = 0; 
+    
+    // ПЕРЕВІРКА СЕЙФУ: завантажуємо збережений баланс або ставимо 0, якщо гра відкрита вперше
+    let balance = parseInt(localStorage.getItem('ua_lottery_balance')) || 0; 
+    document.getElementById('balance').innerText = balance;
+
     let isPlaying = false;
 
     // Ініціалізація TON Connect UI
@@ -223,6 +228,16 @@
         manifestUrl: 'https://leslav2025.github.io/5iz36/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-btn'
     });
+
+    // Автоматично додаємо монети, якщо сторінка перезапустилася ПІСЛЯ успішного виклику гаманця
+    if (localStorage.getItem('pending_payment') === 'true') {
+        balance += 1000;
+        localStorage.setItem('ua_lottery_balance', balance);
+        localStorage.removeItem('pending_payment'); // Очищаємо прапорець очікування
+        document.getElementById('balance').innerText = balance;
+        document.getElementById('message').style.color = '#10b981';
+        document.getElementById('message').innerText = "Баланс відновлено та оновлено: +1000 UA 💎";
+    }
 
     // Створення сітки
     const grid = document.getElementById('lottery-grid');
@@ -261,6 +276,9 @@
         }
     }
 
+    // Викликаємо перевірку кнопок одразу при старті гри
+    updatePlayButtonState();
+
     function handlePlayClick() {
         if (balance < TICKET_COST) {
             document.getElementById('message').style.color = '#ef4444';
@@ -270,7 +288,7 @@
         startRaffle();
     }
 
-    // НАДІЙНА ФУНКЦІЯ: Нараховує монети ОДРАЗУ після успішного виклику гаманця
+    // Робота з транзакцією та збереженням стану в пам'ять телефона
     async function buyCoinsWithTon() {
         if (!tonConnectUI.connected) {
             alert("Будь ласка, спочатку підключіть свій TON-гаманець кнопкою у верхньому правому кутку!");
@@ -279,6 +297,10 @@
 
         document.getElementById('message').style.color = '#38bdf8';
         document.getElementById('message').innerText = "Відкриваємо гаманець... Підтвердіть оплату.";
+
+        // Перед викликом гаманця ставимо помітку "очікує оплати".
+        // Якщо телефон перезапустить сторінку, гра побачить її і додасть +1000 UA автоматично!
+        localStorage.setItem('pending_payment', 'true');
 
         const transaction = {
             validUntil: Math.floor(Date.now() / 1000) + 120,
@@ -291,21 +313,23 @@
         };
 
         try {
-            // Запускаємо транзакцію в Tonkeeper / MyTonWallet
             await tonConnectUI.sendTransaction(transaction);
             
-            // Оскільки sendTransaction повертає результат лише ПІСЛЯ того, як користувач підтвердив оплату у додатку гаманця:
-            // Ми МИТТЄВО додаємо монети без зайвих перевірок блокчейну
+            // Якщо телефон НЕ перезавантажив сторінку і все пройшло гладко в додатку:
             balance += 1000;
+            localStorage.setItem('ua_lottery_balance', balance);
+            localStorage.removeItem('pending_payment');
             document.getElementById('balance').innerText = balance;
             document.getElementById('message').style.color = '#10b981';
-            document.getElementById('message').innerText = "Успішно! Нараховано +1000 UA 💎";
+            document.getElementById('message').innerText = "Успішно нараховано +1000 UA 💎";
             updatePlayButtonState();
 
         } catch (error) {
             console.error(error);
+            // Якщо користувач сам скасував операцію, прибираємо помітку
+            localStorage.removeItem('pending_payment');
             document.getElementById('message').style.color = '#ef4444';
-            document.getElementById('message').innerText = "Оплату скасовано або стався збій у гаманці.";
+            document.getElementById('message').innerText = "Оплату скасовано або стався збій.";
         }
     }
 
@@ -332,6 +356,7 @@
     function startRaffle() {
         isPlaying = true;
         balance -= TICKET_COST;
+        localStorage.setItem('ua_lottery_balance', balance); // Зберігаємо зменшений баланс
         document.getElementById('balance').innerText = balance;
         updatePlayButtonState();
         
@@ -371,6 +396,7 @@
         else if (matches === 5) prize = 50000;
 
         balance += prize;
+        localStorage.setItem('ua_lottery_balance', balance); // Зберігаємо новий баланс після гри в "сейф"
         document.getElementById('balance').innerText = balance;
         document.getElementById('drum-status').innerText = "Розіграш завершено!";
         
