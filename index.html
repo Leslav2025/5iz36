@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>UA Lottery 5 із 36 + TON</title>
+    <!-- Підключаємо офіційний TON Connect UI та бібліотеку Конфетті -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -186,6 +187,72 @@
             margin-top: 12px;
             line-height: 1.4;
         }
+
+        /* СТИЛІ МОДАЛЬНОГО ВІКНА ВИВЕДЕННЯ КОШТІВ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            padding: 20px;
+        }
+        .modal-content {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 30px 20px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            border: 2px solid #fbbf24;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+        .modal-title {
+            color: #fbbf24;
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+        .modal-prize {
+            font-size: 28px;
+            font-weight: 800;
+            color: #10b981;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+        }
+        .modal-desc {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .btn-modal-claim {
+            display: block;
+            background: #0088cc;
+            color: #fff;
+            padding: 14px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(0,136,204,0.4);
+            transition: all 0.2s ease;
+        }
+        .btn-modal-claim:active {
+            transform: scale(0.97);
+        }
+        .btn-modal-close {
+            background: transparent;
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 15px;
+            text-decoration: underline;
+            cursor: pointer;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -217,9 +284,25 @@
 
     <button class="btn-primary" id="btn-play" onclick="handlePlayClick()" disabled>Зробити ставку</button>
     
+    <!-- Кнопка купівлі монет UA -->
     <button class="btn-ton-pay" id="btn-buy-coins" onclick="buyCoinsWithTon()">Поповнити: 1000 UA за 0.01 TON</button>
     
     <div class="message-box" id="message"></div>
+</div>
+
+<!-- РОЗУМНЕ ВІКНО ВИПЛАТИ -->
+<div class="modal-overlay" id="win-modal">
+    <div class="modal-content">
+        <h2 class="modal-title">🎉 Великий виграш! 🎉</h2>
+        <div class="modal-prize" id="modal-prize-val">0 UA</div>
+        <p class="modal-desc">
+            Ваш гаманець та сума зафіксовані. Натисніть кнопку нижче, щоб автоматично надіслати заявку в наш бот виплат.
+        </p>
+        <a id="modal-claim-link" href="#" target="_blank" class="btn-modal-claim" onclick="closeWinModal()">
+            Отримати виплату в боті 🚀
+        </a>
+        <button class="btn-modal-close" onclick="closeWinModal()">Залишити на балансі гри</button>
+    </div>
 </div>
 
 <script>
@@ -255,7 +338,7 @@
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             
-            osc.type = type; // 'sine', 'square', 'sawtooth', 'triangle'
+            osc.type = type; 
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
             
             gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
@@ -271,20 +354,17 @@
         }
     }
 
-    // Звукові ефекти
     function playClickSound() { playSound(600, 'sine', 0.08, 0.15); }
     function playBallSound() { playSound(450, 'triangle', 0.15, 0.2); }
     function playWinSound() {
-        // Потрійний акорд перемоги
-        playSound(523.25, 'sine', 0.15, 0.15); // До
-        setTimeout(() => playSound(659.25, 'sine', 0.15, 0.15), 100); // Мі
+        playSound(523.25, 'sine', 0.15, 0.15); 
+        setTimeout(() => playSound(659.25, 'sine', 0.15, 0.15), 100); 
         setTimeout(() => {
-            playSound(783.99, 'sine', 0.3, 0.2); // Соль
+            playSound(783.99, 'sine', 0.3, 0.2); 
             triggerConfetti();
         }, 200);
     }
     function playEpicWinSound() {
-        // Епічний каскад для супер-виграшу (4 або 5 чисел)
         let t = 0;
         const intervals = [523, 659, 784, 1046, 1318];
         intervals.forEach((f, idx) => {
@@ -295,10 +375,9 @@
         });
     }
     function playLoseSound() {
-        playSound(220, 'sawtooth', 0.4, 0.1); // Сумний низький звук
+        playSound(220, 'sawtooth', 0.4, 0.1); 
     }
 
-    // Функція запуску конфетті
     function triggerConfetti() {
         confetti({
             particleCount: 100,
@@ -313,7 +392,6 @@
         buttonRootId: 'ton-connect-btn'
     });
 
-    // Автоматично додаємо монети, якщо сторінка перезапустилася ПІСЛЯ успішного виклику гаманця
     if (localStorage.getItem('pending_payment') === 'true') {
         balance += 1000;
         localStorage.setItem('ua_lottery_balance', balance);
@@ -474,6 +552,34 @@
         }, 800);
     }
 
+    // ФУНКЦІЯ ВИКЛИКУ ВІКНА ВИВЕДЕННЯ
+    function triggerWithdrawalModal(prizeAmount) {
+        // Отримуємо адресу підключеного гаманця користувача через TON Connect
+        let userWallet = "not_connected";
+        if (tonConnectUI.account && tonConnectUI.account.address) {
+            userWallet = tonConnectUI.account.address;
+        }
+
+        // Автоматично шифруємо та генеруємо диплінк параметр для вашого бота
+        // Формат: НазваГри_Сума_Гаманець
+        const gameName = "UALottery5iz36";
+        const startParam = `${gameName}_${prizeAmount}UA_${userWallet}`;
+        
+        // Збираємо фінальне посилання на бот
+        const telegramBotLink = `https://t.me/tokenpist_bot?start=${startParam}`;
+        
+        // Оновлюємо значення у вікні
+        document.getElementById('modal-prize-val').innerText = `${prizeAmount} UA`;
+        document.getElementById('modal-claim-link').href = telegramBotLink;
+        
+        // Відкриваємо модалку на екрані
+        document.getElementById('win-modal').style.display = 'flex';
+    }
+
+    function closeWinModal() {
+        document.getElementById('win-modal').style.display = 'none';
+    }
+
     function checkResults(winningNumbers) {
         const matches = selectedNumbers.filter(num => winningNumbers.includes(num)).length;
         let prize = 0;
@@ -494,9 +600,15 @@
             msgElement.innerText = `Вгадано чисел: ${matches}! Ваш виграш: +${prize} UA 🎉`;
             
             if (matches >= 4) {
-                playEpicWinSound(); // Великий епічний куш
+                playEpicWinSound();
+                // ТРИГЕР: якщо виграш великий (1500 або 50000 UA), одразу викидаємо вікно з авто-виводом у бот!
+                setTimeout(() => { triggerWithdrawalModal(prize); }, 1500);
             } else {
-                playWinSound(); // Звичайний виграш (2 чи 3 числа)
+                playWinSound();
+                // Для тестування або звичайних виграшів можна теж викликати вікно, якщо хочеш (зараз увімкнено для 250+ UA)
+                if (prize >= 250) {
+                    setTimeout(() => { triggerWithdrawalModal(prize); }, 1500);
+                }
             }
         } else {
             msgElement.style.color = '#ef4444';
