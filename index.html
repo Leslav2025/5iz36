@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>UA Lottery 5 із 36 + TON</title>
-    <!-- Підключаємо офіційний TON Connect UI -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -36,6 +36,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             text-align: center;
+            margin-top: 10px;
         }
         .header-ton {
             display: flex;
@@ -44,9 +45,10 @@
             margin-bottom: 20px;
         }
         h1 {
-            font-size: 22px;
+            font-size: 24px;
             color: #fbbf24;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
         }
         #ton-connect-btn {
             scale: 0.9;
@@ -60,10 +62,10 @@
             display: flex;
             justify-content: space-between;
             background: rgba(15, 23, 42, 0.6);
-            padding: 10px 15px;
+            padding: 12px 15px;
             border-radius: 12px;
             margin-bottom: 20px;
-            font-size: 15px;
+            font-size: 16px;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
         .stat-val {
@@ -89,11 +91,14 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
+        .cell:active {
+            transform: scale(0.9);
+        }
         .cell.selected {
             background: #f59e0b;
             border-color: #fbbf24;
             color: #0f172a;
-            box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
         }
         .drum-section {
             background: rgba(15, 23, 42, 0.4);
@@ -101,6 +106,10 @@
             padding: 15px;
             margin-bottom: 20px;
             border: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        #drum-status {
+            font-size: 14px;
+            color: #cbd5e1;
         }
         .ball-container {
             display: flex;
@@ -143,20 +152,25 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
+        button:active {
+            transform: scale(0.98);
+        }
         button:disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
+            transform: none;
         }
         .btn-primary {
             background: #10b981;
             color: white;
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            width: 100%;
         }
         .btn-ton-pay {
             background: #0098ea;
             color: white;
-            box-shadow: 0 4px 12px rgba(0, 152, 234, 0.3);
-            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(0, 152, 234, 0.4);
+            margin-top: 12px;
             width: 100%;
             display: none;
         }
@@ -169,7 +183,8 @@
             font-weight: 500;
             min-height: 24px;
             color: #38bdf8;
-            margin-top: 10px;
+            margin-top: 12px;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -202,13 +217,13 @@
 
     <button class="btn-primary" id="btn-play" onclick="handlePlayClick()" disabled>Зробити ставку</button>
     
-    <!-- Кнопка купівлі монет UA -->
     <button class="btn-ton-pay" id="btn-buy-coins" onclick="buyCoinsWithTon()">Поповнити: 1000 UA за 0.01 TON</button>
     
     <div class="message-box" id="message"></div>
 </div>
 
 <script>
+    // ТВІЙ ГАМАНЕЦЬ ДЛЯ ОТРИМАННЯ ОПЛАТИ
     const MY_TON_WALLET = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw"; 
 
     const TOTAL_NUMBERS = 36;
@@ -217,11 +232,80 @@
     
     let selectedNumbers = [];
     
-    // ПЕРЕВІРКА СЕЙФУ: завантажуємо збережений баланс або ставимо 0, якщо гра відкрита вперше
+    // Завантажуємо збережений баланс або ставимо 0
     let balance = parseInt(localStorage.getItem('ua_lottery_balance')) || 0; 
     document.getElementById('balance').innerText = balance;
 
     let isPlaying = false;
+
+    // Вбудований звуковий рушій браузера (Web Audio API)
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playSound(freq, type, duration, vol = 0.1) {
+        try {
+            initAudio();
+            if (!audioCtx) return;
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = type; // 'sine', 'square', 'sawtooth', 'triangle'
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch(e) {
+            console.error("Помилка звуку:", e);
+        }
+    }
+
+    // Звукові ефекти
+    function playClickSound() { playSound(600, 'sine', 0.08, 0.15); }
+    function playBallSound() { playSound(450, 'triangle', 0.15, 0.2); }
+    function playWinSound() {
+        // Потрійний акорд перемоги
+        playSound(523.25, 'sine', 0.15, 0.15); // До
+        setTimeout(() => playSound(659.25, 'sine', 0.15, 0.15), 100); // Мі
+        setTimeout(() => {
+            playSound(783.99, 'sine', 0.3, 0.2); // Соль
+            triggerConfetti();
+        }, 200);
+    }
+    function playEpicWinSound() {
+        // Епічний каскад для супер-виграшу (4 або 5 чисел)
+        let t = 0;
+        const intervals = [523, 659, 784, 1046, 1318];
+        intervals.forEach((f, idx) => {
+            setTimeout(() => {
+                playSound(f, 'sine', 0.25, 0.2);
+                triggerConfetti();
+            }, idx * 120);
+        });
+    }
+    function playLoseSound() {
+        playSound(220, 'sawtooth', 0.4, 0.1); // Сумний низький звук
+    }
+
+    // Функція запуску конфетті
+    function triggerConfetti() {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.65 }
+        });
+    }
 
     // Ініціалізація TON Connect UI
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -233,10 +317,11 @@
     if (localStorage.getItem('pending_payment') === 'true') {
         balance += 1000;
         localStorage.setItem('ua_lottery_balance', balance);
-        localStorage.removeItem('pending_payment'); // Очищаємо прапорець очікування
+        localStorage.removeItem('pending_payment');
         document.getElementById('balance').innerText = balance;
         document.getElementById('message').style.color = '#10b981';
-        document.getElementById('message').innerText = "Баланс відновлено та оновлено: +1000 UA 💎";
+        document.getElementById('message').innerText = "Баланс успішно оновлено: +1000 UA 💎";
+        playWinSound();
     }
 
     // Створення сітки
@@ -245,12 +330,13 @@
         const cell = document.createElement('div');
         cell.className = 'cell';
         cell.innerText = i;
-        cell.onclick = () => toggleNumber(i, cell);
+        cell.onclick = () => { initAudio(); toggleNumber(i, cell); };
         grid.appendChild(cell);
     }
 
     function toggleNumber(num, cellElement) {
         if (isPlaying) return;
+        playClickSound();
         const index = selectedNumbers.indexOf(num);
         if (index > -1) {
             selectedNumbers.splice(index, 1);
@@ -276,10 +362,10 @@
         }
     }
 
-    // Викликаємо перевірку кнопок одразу при старті гри
     updatePlayButtonState();
 
     function handlePlayClick() {
+        initAudio();
         if (balance < TICKET_COST) {
             document.getElementById('message').style.color = '#ef4444';
             document.getElementById('message').innerText = "Недостатньо балансу UA! Поповніть через TON нижче.";
@@ -288,8 +374,8 @@
         startRaffle();
     }
 
-    // Робота з транзакцією та збереженням стану в пам'ять телефона
     async function buyCoinsWithTon() {
+        initAudio();
         if (!tonConnectUI.connected) {
             alert("Будь ласка, спочатку підключіть свій TON-гаманець кнопкою у верхньому правому кутку!");
             return;
@@ -298,8 +384,6 @@
         document.getElementById('message').style.color = '#38bdf8';
         document.getElementById('message').innerText = "Відкриваємо гаманець... Підтвердіть оплату.";
 
-        // Перед викликом гаманця ставимо помітку "очікує оплати".
-        // Якщо телефон перезапустить сторінку, гра побачить її і додасть +1000 UA автоматично!
         localStorage.setItem('pending_payment', 'true');
 
         const transaction = {
@@ -315,18 +399,17 @@
         try {
             await tonConnectUI.sendTransaction(transaction);
             
-            // Якщо телефон НЕ перезавантажив сторінку і все пройшло гладко в додатку:
             balance += 1000;
             localStorage.setItem('ua_lottery_balance', balance);
             localStorage.removeItem('pending_payment');
             document.getElementById('balance').innerText = balance;
             document.getElementById('message').style.color = '#10b981';
             document.getElementById('message').innerText = "Успішно нараховано +1000 UA 💎";
+            playWinSound();
             updatePlayButtonState();
 
         } catch (error) {
             console.error(error);
-            // Якщо користувач сам скасував операцію, прибираємо помітку
             localStorage.removeItem('pending_payment');
             document.getElementById('message').style.color = '#ef4444';
             document.getElementById('message').innerText = "Оплату скасовано або стався збій.";
@@ -335,6 +418,8 @@
 
     function autoSelect() {
         if (isPlaying) return;
+        initAudio();
+        playClickSound();
         clearSelection();
         while (selectedNumbers.length < REQUIRED_SELECTION) {
             const rand = Math.floor(Math.random() * TOTAL_NUMBERS) + 1;
@@ -348,6 +433,8 @@
 
     function clearSelection() {
         if (isPlaying) return;
+        initAudio();
+        playClickSound();
         selectedNumbers = [];
         document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('selected'));
         updatePlayButtonState();
@@ -356,7 +443,7 @@
     function startRaffle() {
         isPlaying = true;
         balance -= TICKET_COST;
-        localStorage.setItem('ua_lottery_balance', balance); // Зберігаємо зменшений баланс
+        localStorage.setItem('ua_lottery_balance', balance);
         document.getElementById('balance').innerText = balance;
         updatePlayButtonState();
         
@@ -374,6 +461,7 @@
         let step = 0;
         const interval = setInterval(() => {
             if (step < REQUIRED_SELECTION) {
+                playBallSound();
                 const ball = document.createElement('div');
                 ball.className = 'result-ball';
                 ball.innerText = winningNumbers[step];
@@ -396,7 +484,7 @@
         else if (matches === 5) prize = 50000;
 
         balance += prize;
-        localStorage.setItem('ua_lottery_balance', balance); // Зберігаємо новий баланс після гри в "сейф"
+        localStorage.setItem('ua_lottery_balance', balance);
         document.getElementById('balance').innerText = balance;
         document.getElementById('drum-status').innerText = "Розіграш завершено!";
         
@@ -404,9 +492,16 @@
         if (prize > 0) {
             msgElement.style.color = '#10b981';
             msgElement.innerText = `Вгадано чисел: ${matches}! Ваш виграш: +${prize} UA 🎉`;
+            
+            if (matches >= 4) {
+                playEpicWinSound(); // Великий епічний куш
+            } else {
+                playWinSound(); // Звичайний виграш (2 чи 3 числа)
+            }
         } else {
             msgElement.style.color = '#ef4444';
             msgElement.innerText = `Вгадано чисел: ${matches}. Пощастить наступного разу!`;
+            playLoseSound();
         }
 
         isPlaying = false;
