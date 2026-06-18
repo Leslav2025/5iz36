@@ -552,27 +552,27 @@
         }, 800);
     }
 
-    // ФУНКЦІЯ ВИКЛИКУ ВІКНА ВИВЕДЕННЯ
+    // ОНОВЛЕНА ФУНКЦІЯ АВТО-ЗАПОВНЕННЯ ТЕКСТУ
     function triggerWithdrawalModal(prizeAmount) {
-        // Отримуємо адресу підключеного гаманця користувача через TON Connect
-        let userWallet = "not_connected";
+        let userWallet = "Не підключено";
         if (tonConnectUI.account && tonConnectUI.account.address) {
             userWallet = tonConnectUI.account.address;
         }
 
-        // Автоматично шифруємо та генеруємо диплінк параметр для вашого бота
-        // Формат: НазваГри_Сума_Гаманець
-        const gameName = "UALottery5iz36";
-        const startParam = `${gameName}_${prizeAmount}UA_${userWallet}`;
+        const gameName = "UA GOLDEN HUB"; // Змінив назву проекту під твій хаб з фото
         
-        // Збираємо фінальне посилання на бот
-        const telegramBotLink = `https://t.me/tokenpist_bot?start=${startParam}`;
+        // Формуємо текст повідомлення точно як у твоєму прикладі
+        const messageText = `💰 Сума: ${prizeAmount} UA\n💳 Гаманець: ${userWallet}\n🎮 Проект: ${gameName}`;
         
-        // Оновлюємо значення у вікні
+        // Кодуємо спецсимволи та пробіли для посилання
+        const encodedText = encodeURIComponent(messageText);
+        
+        // Посилання, яке самостійно пише текст у віконце введення
+        const telegramBotLink = `https://t.me/tokenpist_bot?text=${encodedText}`;
+        
         document.getElementById('modal-prize-val').innerText = `${prizeAmount} UA`;
         document.getElementById('modal-claim-link').href = telegramBotLink;
         
-        // Відкриваємо модалку на екрані
         document.getElementById('win-modal').style.display = 'flex';
     }
 
@@ -601,11 +601,9 @@
             
             if (matches >= 4) {
                 playEpicWinSound();
-                // ТРИГЕР: якщо виграш великий (1500 або 50000 UA), одразу викидаємо вікно з авто-виводом у бот!
                 setTimeout(() => { triggerWithdrawalModal(prize); }, 1500);
             } else {
                 playWinSound();
-                // Для тестування або звичайних виграшів можна теж викликати вікно, якщо хочеш (зараз увімкнено для 250+ UA)
                 if (prize >= 250) {
                     setTimeout(() => { triggerWithdrawalModal(prize); }, 1500);
                 }
