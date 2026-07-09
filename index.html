@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UA Lottery 5 із 36 🎰</title>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -29,6 +30,15 @@
             align-items: center;
             padding: 20px;
             min-height: 100vh;
+        }
+
+        /* Контейнер для кнопки гаманця зверху */
+        .header-wallet {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 15px;
         }
 
         .container {
@@ -61,7 +71,6 @@
             color: var(--success-color);
         }
 
-        /* Ігрова сітка кнопки */
         .grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -98,7 +107,6 @@
             animation: pulse 0.5s infinite alternate;
         }
 
-        /* Контейнер для куль лототрону */
         .balls-display {
             display: flex;
             justify-content: center;
@@ -126,7 +134,6 @@
             animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
-        /* Управління */
         .controls {
             display: flex;
             flex-direction: column;
@@ -189,6 +196,10 @@
 </head>
 <body>
 
+    <div class="header-wallet">
+        <div id="ton-connect-btn"></div>
+    </div>
+
     <div class="container">
         <h1>💎 UA Lottery 5 із 36 🎰</h1>
         
@@ -197,7 +208,7 @@
         </div>
 
         <div id="selected-counter">Обрано: 0 / 5</div>
-        <div id="status-message">Оберіть 5 чисел, щоб почати гру</div>
+        <div id="status-message">Будь ласка, підключіть TON-гаманець для початку гри</div>
 
         <div class="grid" id="grid-container"></div>
 
@@ -205,8 +216,8 @@
 
         <div class="controls">
             <button class="btn btn-primary" id="btn-play" onclick="startDraw()" disabled>ГРАТИ (Вартість: 10 UA)</button>
-            <button class="btn btn-secondary" onclick="quickSelect()">⚡ Автовибір</button>
-            <button class="btn btn-secondary" style="background: #334155;" onclick="clearTicket()">Очистити</button>
+            <button class="btn btn-secondary" id="btn-auto" onclick="quickSelect()" disabled>⚡ Автовибір</button>
+            <button class="btn btn-secondary" style="background: #334155;" id="btn-clear" onclick="clearTicket()" disabled>Очистити</button>
         </div>
     </div>
 
@@ -218,9 +229,33 @@
         let selectedNumbers = [];
         let winningNumbers = [];
         let isPlaying = false;
-        let needResetAfterGame = false; // Прапорець, який вказує, що попередній раунд завершено і поле треба скинути
+        let needResetAfterGame = false;
+        let walletConnected = false; // Стан підключення гаманця
         
         let balance = parseInt(localStorage.getItem('userBalance')) || 100;
+
+        // Ініціалізація TON Connect UI
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://leslav2025.github.io/5iz36/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-btn'
+        });
+
+        // Слідкуємо за зміною стану гаманця (підключено/відключено)
+        tonConnectUI.onStatusChange(wallet => {
+            if (wallet) {
+                walletConnected = true;
+                document.getElementById('btn-auto').disabled = false;
+                document.getElementById('btn-clear').disabled = false;
+                updateUI();
+            } else {
+                walletConnected = false;
+                document.getElementById('btn-play').disabled = true;
+                document.getElementById('btn-auto').disabled = true;
+                document.getElementById('btn-clear').disabled = true;
+                document.getElementById('status-message').innerText = "Будь ласка, підключіть TON-гаманець для початку гри";
+                clearTicket();
+            }
+        });
 
         // Ініціалізація ігрового поля
         const gridContainer = document.getElementById('grid-container');
@@ -236,9 +271,8 @@
         updateUI();
 
         function toggleNumber(num) {
-            if (isPlaying) return; 
+            if (isPlaying || !walletConnected) return; // Без гаманця клікати не можна
             
-            // Якщо це перший клік після завершеної гри — автоматично очищуємо старий результат
             if (needResetAfterGame) {
                 clearTicket();
                 needResetAfterGame = false;
@@ -261,6 +295,8 @@
         }
 
         function updateUI() {
+            if (!walletConnected) return; // Якщо гаманець не підключено, не оновлюємо ігрові повідомлення
+
             if (balance < ticketCost && !isPlaying) {
                 balance += 100;
                 alert("🎁 Подарунок! Рахунок відновлено, тримайте +100 UA для гри!");
@@ -286,8 +322,8 @@
         }
 
         function quickSelect() {
-            if (isPlaying) return;
-            clearTicket(); // Повністю скидаємо старі числа перед автовибором
+            if (isPlaying || !walletConnected) return;
+            clearTicket(); 
             needResetAfterGame = false;
 
             while (selectedNumbers.length < maxSelections) {
@@ -309,15 +345,13 @@
                     btn.classList.remove('match');
                 }
             }
-            // Очищуємо контейнер куль лототрону
             document.getElementById('balls-container').innerHTML = '';
             selectedNumbers = [];
-            updateUI();
+            if (walletConnected) updateUI();
         }
 
-        // --- ЛОГІКА РОЗІГРАШУ ---
         async function startDraw() {
-            if (isPlaying || selectedNumbers.length < maxSelections) return;
+            if (isPlaying || !walletConnected || selectedNumbers.length < maxSelections) return;
             
             if (balance < ticketCost) {
                 alert("Недостатньо коштів для гри!");
@@ -385,18 +419,17 @@
 
             balance += winAmount;
             isPlaying = false; 
-            needResetAfterGame = true; // Активуємо автоматичне очищення поля при наступній дії
+            needResetAfterGame = true; 
             
             if (winAmount >= 1500) {
                 setTimeout(() => {
-                    alert(`💳 Ваш виграш ${winAmount} UA доступний для швидкого виведення на TON-гаманець!`);
+                    alert(`💳 Ваш виграш ${winAmount} UA успішно зафіксовано для гаманця: ${tonConnectUI.account.address.slice(0,6)}...${tonConnectUI.account.address.slice(-4)}`);
                 }, 1200);
             }
 
             updateUI();
         }
 
-        // --- ЗВУКИ ---
         function playClickSound() { playTone(440, 'sine', 0.05); }
         function playBallSound() { playTone(587.33, 'triangle', 0.08); }
         function playLoseSound() { playTone(220, 'sawtooth', 0.3); }
