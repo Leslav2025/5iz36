@@ -22,7 +22,7 @@
         .header-controls { width: 100%; max-width: 500px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
 
         .btn-premium-buy { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; border: none; padding: 10px 14px; font-size: 13px; font-weight: bold; border-radius: 20px; cursor: pointer; box-shadow: 0 4px 10px rgba(168, 85, 247, 0.4); transition: transform 0.2s; }
-        .btn-premium-buy:disabled { background: #334155; cursor: not-allowed; box-shadow: none; }
+        .btn-premium-buy:disabled { background: #334155; cursor: not-allowed; box-shadow: none; opacity: 0.6; }
 
         .container { max-width: 500px; width: 100%; background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
 
@@ -67,76 +67,56 @@
 <body>
 
     <div class="header-controls">
-        <button class="btn-premium-buy" id="btn-buy-ua" onclick="buyUABalance()" disabled>⭐ +500 UA за 0.01 TON</button>
+        <button class="btn-premium-buy" id="btn-buy-ua" onclick="buyUABalance()" disabled>⭐ Преміум: +500 UA (0.01 TON)</button>
         <div id="ton-connect-btn"></div>
     </div>
 
     <div class="container">
-        <h1>💎 UA Lottery 5 із 36 🎰</h1>
-        <div class="balance-container">Баланс: <span id="balance-display">0 UA</span></div>
+        <h1>🔮 UA Lottery 5 із 36 🎰</h1>
+        <div class="balance-container">Баланс: <span id="balance-display">100 UA</span></div>
         <div id="selected-counter">Обрано: 0 / 5</div>
-        <div id="status-message">Будь ласка, підключіть гаманець для початку гри</div>
+        <div id="status-message">Оберіть 5 чисел для початку гри</div>
 
         <div class="grid" id="grid-container"></div>
         <div class="balls-display" id="balls-container"></div>
 
         <div class="controls">
-            <button class="btn btn-primary" id="btn-play" onclick="startDraw()" disabled>ГРАТИ (Вартість: 100 UA)</button>
-            <button class="btn btn-secondary" id="btn-auto" onclick="quickSelect()" disabled>⚡ Автовибір</button>
-            <button class="btn btn-secondary" id="btn-clear" onclick="clearTicket()" disabled>Очистити</button>
-            <button class="btn" id="btn-withdraw" style="background: #eab308; color: black; display: none;" onclick="withdrawFunds()">💳 Вивести виграш (>5000 UA)</button>
+            <button class="btn btn-primary" id="btn-play" onclick="startDraw()" disabled>ГРАТИ (Вартість: 10 UA)</button>
+            <button class="btn btn-secondary" id="btn-auto" onclick="quickSelect()">⚡ Автовибір</button>
+            <button class="btn btn-secondary" id="btn-clear" onclick="clearTicket()">Очистити</button>
+            <button class="btn" id="btn-withdraw" style="background: #eab308; color: black; display: none;" onclick="withdrawFunds()">💳 Вивести Преміум виграш</button>
         </div>
     </div>
 
     <script>
-        const totalNumbers = 36, maxSelections = 5, ticketCost = 100;
+        const totalNumbers = 36, maxSelections = 5, ticketCost = 10; // Ціна гри завжди 10 UA
         let selectedNumbers = [], winningNumbers = [], isPlaying = false, needResetAfterGame = false, walletConnected = false;
-        let balance = parseInt(localStorage.getItem('userBalance')) || 100;
+        
+        let balance = parseInt(localStorage.getItem('userBalance'));
+        if (isNaN(balance) || balance <= 0) { balance = 100; }
 
+        // Ініціалізація TON Connect
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://leslav2025.github.io/5iz36/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
+        // Слідкуємо за статусом гаманця
         tonConnectUI.onStatusChange(wallet => {
             const buyBtn = document.getElementById('btn-buy-ua');
             if (wallet) {
                 walletConnected = true;
                 buyBtn.disabled = false;
-                document.getElementById('btn-auto').disabled = false;
-                document.getElementById('btn-clear').disabled = false;
-                updateUI();
+                buyBtn.innerText = "⭐ Купити +500 UA (0.01 TON)";
             } else {
                 walletConnected = false;
                 buyBtn.disabled = true;
-                document.getElementById('btn-play').disabled = true;
-                document.getElementById('btn-auto').disabled = true;
-                document.getElementById('btn-clear').disabled = true;
-                document.getElementById('status-message').innerText = "Будь ласка, підключіть гаманець для початку гри";
-                clearTicket();
+                buyBtn.innerText = "⭐ Преміум (Підключіть гаманець)";
             }
+            updateUI();
         });
 
-        function withdrawFunds() {
-            const message = encodeURIComponent(`🎰 Запит на виведення виграшу!\n\n💰 Сума: ${balance} UA\n💳 Гаманець: ${tonConnectUI.account.address}\n🎮 Гра: UA Lottery 5 із 36`);
-            window.location.href = `https://t.me/Leslav?text=${message}`;
-        }
-
-        async function buyUABalance() {
-            if (!walletConnected || isPlaying) return;
-            document.getElementById('status-message').innerText = "⏳ Очікування підтвердження транзакції...";
-            const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 120,
-                messages: [{ address: "UQBh_d7w5_rshHwS3pZ8zXOnM2n4b0v5R_YpXpHCJ8GwA_Hh", amount: "10000000" }]
-            };
-            try {
-                await tonConnectUI.sendTransaction(transaction);
-                balance += 500;
-                updateUI();
-                alert("⭐ Успішно! Ваш баланс поповнено на +500 UA!");
-            } catch (e) { alert("❌ Транзакцію скасовано"); updateUI(); }
-        }
-
+        // Створення кнопок на полі
         const gridContainer = document.getElementById('grid-container');
         for (let i = 1; i <= totalNumbers; i++) {
             const btn = document.createElement('button');
@@ -146,7 +126,7 @@
         }
 
         function toggleNumber(num) {
-            if (isPlaying || !walletConnected) return;
+            if (isPlaying) return;
             if (needResetAfterGame) { clearTicket(); needResetAfterGame = false; }
             const btn = document.getElementById(`num-${num}`);
             const index = selectedNumbers.indexOf(num);
@@ -156,22 +136,21 @@
         }
 
         function updateUI() {
-            if (!walletConnected) return;
-            document.getElementById('btn-withdraw').style.display = (balance >= 5000) ? 'block' : 'none';
+            // Показ кнопки виведення (Тільки якщо підключено гаманець та баланс великий)
+            const withdrawBtn = document.getElementById('btn-withdraw');
+            if (walletConnected && balance >= 5000) {
+                withdrawBtn.style.display = 'block';
+            } else {
+                withdrawBtn.style.display = 'none';
+            }
             
             const counter = document.getElementById('selected-counter');
             counter.innerText = `Обрано: ${selectedNumbers.length} / ${maxSelections}`;
             
             const playBtn = document.getElementById('btn-play');
             if (selectedNumbers.length === maxSelections) {
-                counter.className = 'ready';
-                if (balance >= ticketCost) {
-                    if (!isPlaying) playBtn.disabled = false;
-                    document.getElementById('status-message').innerText = "Квиток заповнено! Натисніть ГРАТИ!";
-                } else {
-                    playBtn.disabled = true;
-                    document.getElementById('status-message').innerText = "❌ Недостатньо UA монет! Поповніть баланс через кнопку зверху.";
-                }
+                if (!isPlaying) playBtn.disabled = false;
+                document.getElementById('status-message').innerText = "Квиток заповнено! Натисніть ГРАТИ!";
             } else {
                 playBtn.disabled = true;
                 document.getElementById('status-message').innerText = `Оберіть ще ${maxSelections - selectedNumbers.length} чисел`;
@@ -181,8 +160,33 @@
             localStorage.setItem('userBalance', balance);
         }
 
+        async function buyUABalance() {
+            if (!walletConnected || isPlaying) return;
+            document.getElementById('status-message').innerText = "⏳ Очікування підтвердження транзакції...";
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 120,
+                messages: [{ address: "UQBh_d7w5_rshHwS3pZ8zXOnM2n4b0v5R_YpXpHCJ8GwA_Hh", amount: "10000000" }] // 0.01 TON
+            };
+            try {
+                await tonConnectUI.sendTransaction(transaction);
+                balance += 500;
+                updateUI();
+                document.getElementById('status-message').innerText = "⭐ Баланс успішно поповнено на +500 UA!";
+                alert("⭐ Успішно! Ваш баланс поповнено на +500 UA!");
+            } catch (e) { 
+                alert("❌ Транзакцію скасовано або сталася помилка"); 
+                updateUI(); 
+            }
+        }
+
+        function withdrawFunds() {
+            if(!walletConnected) return;
+            const message = encodeURIComponent(`🎰 Запит на виведення Преміум виграшу!\n\n💰 Сума: ${balance} UA\n💳 Гаманець: ${tonConnectUI.account.address}\n🎮 Гра: UA Lottery 5 із 36`);
+            window.location.href = `https://t.me/Leslav?text=${message}`;
+        }
+
         function quickSelect() {
-            if (isPlaying || !walletConnected) return;
+            if (isPlaying) return;
             clearTicket();
             needResetAfterGame = false;
             while (selectedNumbers.length < maxSelections) {
@@ -200,18 +204,30 @@
             }
             document.getElementById('balls-container').innerHTML = '';
             selectedNumbers = [];
-            if (walletConnected) updateUI();
+            updateUI();
         }
 
         async function startDraw() {
-            if (isPlaying || !walletConnected || selectedNumbers.length < maxSelections || balance < ticketCost) return;
-            isPlaying = true; balance -= ticketCost; updateUI();
-            document.getElementById('status-message').innerText = "🎰 Лототрон запускається... Очікуйте куль!";
+            if (isPlaying || selectedNumbers.length < maxSelections) return;
+            
+            // БЕЗКОШТОВНИЙ БОНУС: Якщо баланс менше вартості гри (10 UA), автоматично даємо +100 UA
+            if (balance < ticketCost) {
+                balance += 100;
+                document.getElementById('status-message').innerText = "🎁 Безкоштовний бонус +100 UA нараховано!";
+                document.getElementById('balance-display').innerText = `${balance} UA`;
+                await new Promise(r => setTimeout(r, 1200));
+            }
+
+            isPlaying = true; 
+            balance -= ticketCost; 
+            updateUI();
+            
+            document.getElementById('status-message').innerText = "🎰 Лототрон запускається... Кульки вилітають!";
             document.getElementById('balls-container').innerHTML = '';
             
             winningNumbers = [];
             while (winningNumbers.length < maxSelections) {
-                await new Promise(r => setTimeout(r, 900));
+                await new Promise(r => setTimeout(r, 900)); // Затримка, щоб кульки вилітали по одній
                 let rand = Math.floor(Math.random() * totalNumbers) + 1;
                 if (!winningNumbers.includes(rand)) {
                     winningNumbers.push(rand);
@@ -221,12 +237,17 @@
                     if (selectedNumbers.includes(rand)) document.getElementById(`num-${rand}`).classList.add('match');
                 }
             }
+            
             const matches = selectedNumbers.filter(n => winningNumbers.includes(n)).length;
-            let win = (matches === 5) ? 50000 : (matches === 4) ? 1500 : (matches * 20);
+            let win = (matches === 5) ? 5000 : (matches === 4) ? 500 : (matches * 10);
             balance += win;
-            document.getElementById('status-message').innerText = matches > 0 ? `🎉 Перемога! Виграш: ${win} UA` : "😔 Не пощастило. Натисніть на будь-яке число для нової гри!";
+            
+            document.getElementById('status-message').innerText = matches > 0 ? `🎉 Перемога! Виграш: ${win} UA` : "😔 Не пощастило. Спробуйте ще раз!";
             isPlaying = false; needResetAfterGame = true; updateUI();
         }
+
+        // Ініціалізація інтерфейсу при старті
+        updateUI();
     </script>
 </body>
 </html>
