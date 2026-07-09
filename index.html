@@ -89,7 +89,7 @@
     </div>
 
     <script>
-        // Безпечний аудіо-рушій (Web Audio API). Окремий блок, який не зламає інтерфейс
+        // Безпечний аудіо-рушій (Web Audio API)
         let audioCtx = null;
 
         function initAudio() {
@@ -215,12 +215,12 @@
             initAudio();
             document.getElementById('status-message').innerText = "⏳ Очікування підтвердження транзакції...";
             
-            const nanoTons = BigInt(10000000); // 0.01 TON
+            // Спрощений сумісний формат транзакції з чистим рядком
             const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 180,
+                validUntil: Math.floor(Date.now() / 1000) + 300, 
                 messages: [{ 
                     address: "UQBh_d7w5_rshHwS3pZ8zXOnM2n4b0v5R_YpXpHCJ8GwA_Hh", 
-                    amount: nanoTons.toString()
+                    amount: "10000000" 
                 }]
             };
             
@@ -234,7 +234,10 @@
             } catch (e) { 
                 console.error("Помилка TON Connect:", e);
                 document.getElementById('status-message').innerText = "❌ Помилка транзакції.";
-                alert("❌ Транзакцію скасовано або сталася помилка."); 
+                
+                // Виведення тексту помилки користувачу
+                let errorText = e.message || JSON.stringify(e) || "Невідома помилка";
+                alert(`❌ Помилка транзакції:\n${errorText}`); 
                 updateUI(); 
             }
         }
