@@ -2,285 +2,423 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UA Боулінг Клуб</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UA Lottery 5 із 36 🎰</title>
     <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --success-color: #22c55e;
+            --gold-color: #eab308;
+            --text-color: #f8fafc;
+        }
+
         * {
             box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        body {
             margin: 0;
             padding: 0;
-            background-color: #111827;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow: hidden;
-            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
             display: flex;
             flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
         }
 
-        /* Верхня панель (Header) */
-        .header-panel {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #1f2937;
-            padding: 10px 20px;
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--gold-color);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .balance-container {
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #balance-display {
+            color: var(--success-color);
+        }
+
+        /* Ігрова сітка кнопки */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .num-btn {
+            background: #334155;
+            color: var(--text-color);
+            border: none;
+            padding: 12px 0;
             font-size: 16px;
             font-weight: bold;
-            border-bottom: 2px solid #374151;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .header-title {
-            color: #f59e0b;
-            text-align: center;
-            font-size: 20px;
-            padding: 5px 0;
-            background-color: #111827;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        /* Ігрова зона */
-        .game-container {
-            flex-grow: 1;
+        .num-btn:hover {
+            background: #475569;
+        }
+
+        .num-btn.selected {
+            background: var(--accent-color);
+            color: #000;
+            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--accent-color);
+        }
+
+        .num-btn.match {
+            background: var(--gold-color) !important;
+            color: #000 !important;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        /* Контейнер для куль лототрону */
+        .balls-display {
             display: flex;
             justify-content: center;
+            gap: 10px;
+            min-height: 60px;
+            margin: 20px 0;
             align-items: center;
-            position: relative;
-            background-color: #111827;
-        }
-        canvas {
-            background-color: #1e3a8a; /* Колір бортів */
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
 
-        /* Підказка знизу */
-        .footer-hint {
-            text-align: center;
-            padding: 10px;
-            background-color: #1f2937;
-            color: #9ca3af;
-            font-size: 14px;
-            border-top: 1px solid #374151;
+        .lottery-ball {
+            width: 45px;
+            height: 45px;
+            background: radial-gradient(circle at 30% 30%, #ffedd5, #ea580c);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+
+        .pop-in {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Управління */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-primary:disabled {
+            background: #1e293b;
+            color: #64748b;
+            border: 1px solid #334155;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #475569;
+            color: white;
+        }
+
+        #status-message {
+            margin: 15px 0;
+            font-size: 15px;
+            min-height: 22px;
+            color: #94a3b8;
+        }
+
+        #selected-counter {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        #selected-counter.ready {
+            color: var(--success-color);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 5px var(--gold-color); }
+            100% { box-shadow: 0 0 15px var(--gold-color); }
         }
     </style>
 </head>
 <body>
 
-    <div class="header-title">Bowling Club</div>
-    
-    <div class="header-panel">
-        <div>Фрейм: <span id="frame-val">7/10</span></div>
-        <div>Кидок: <span id="throw-val">1</span></div>
-        <div>Очки: <span id="score-val">5</span></div>
-    </div>
+    <div class="container">
+        <h1>💎 UA Lottery 5 із 36 🎰</h1>
+        
+        <div class="balance-container">
+            Баланс: <span id="balance-display">0 UA</span>
+        </div>
 
-    <div class="game-container">
-        <canvas id="gameCanvas"></canvas>
-    </div>
+        <div id="selected-counter">Обрано: 0 / 5</div>
+        <div id="status-message">Оберіть 5 чисел, щоб почати гру</div>
 
-    <div class="footer-hint">Штовхни кулю пальцем вгору, щоб зробити кидок! 🎳</div>
+        <!-- Ігрове поле -->
+        <div class="grid" id="grid-container"></div>
+
+        <!-- Випавші кулі лототрону -->
+        <div class="balls-display" id="balls-container"></div>
+
+        <!-- Кнопки керування -->
+        <div class="controls">
+            <button class="btn btn-primary" id="btn-play" onclick="startDraw()" disabled>ГРАТИ (Вартість: 10 UA)</button>
+            <button class="btn btn-secondary" onclick="quickSelect()">⚡ Автовибір</button>
+            <button class="btn btn-secondary" style="background: #334155;" onclick="clearTicket()">Очистити</button>
+        </div>
+    </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        const totalNumbers = 36;
+        const maxSelections = 5;
+        const ticketCost = 10; // Вартість одного квитка в UA монетах
 
-        // Налаштування адаптивності Canvas
-        function resizeCanvas() {
-            const container = canvas.parentElement;
-            const size = Math.min(container.clientWidth, container.clientHeight);
-            canvas.width = size * 0.95;
-            canvas.height = size * 1.5;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        let selectedNumbers = [];
+        let winningNumbers = [];
+        let isPlaying = false;
+        
+        // Завантаження балансу (за замовчуванням 100 UA)
+        let balance = parseInt(localStorage.getItem('userBalance')) || 100;
 
-        const laneColor = '#d97706'; // Помаранчева доріжка
-
-        // Функція генерації масиву з 10 кеглів
-        function generatePins() {
-            return [
-                {x: 0.5, y: 0.15, active: true},
-                {x: 0.45, y: 0.12, active: true}, {x: 0.55, y: 0.12, active: true},
-                {x: 0.4, y: 0.09, active: true}, {x: 0.5, y: 0.09, active: true}, {x: 0.6, y: 0.09, active: true},
-                {x: 0.35, y: 0.06, active: true}, {x: 0.45, y: 0.06, active: true}, {x: 0.55, y: 0.06, active: true}, {x: 0.65, y: 0.06, active: true}
-            ];
+        // Ініціалізація ігрового поля
+        const gridContainer = document.getElementById('grid-container');
+        for (let i = 1; i <= totalNumbers; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'num-btn';
+            btn.innerText = i;
+            btn.id = `num-${i}`;
+            btn.onclick = () => toggleNumber(i);
+            gridContainer.appendChild(btn);
         }
 
-        let pins = generatePins();
-        let currentFrame = 7;
-        let currentThrow = 1;
-        let score = 5;
+        // Оновлюємо UI при першому запуску
+        updateUI();
 
-        let ball = {
-            x: canvas.width / 2,
-            y: canvas.height * 0.85,
-            radius: 15,
-            vx: 0,
-            vy: 0,
-            isMoving: false
-        };
-
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let messageToShow = ""; 
-        let messageTimer = 0;
-
-        canvas.addEventListener('touchstart', (e) => {
-            if (ball.isMoving) return;
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        });
-
-        canvas.addEventListener('touchend', (e) => {
-            if (ball.isMoving) return;
+        function toggleNumber(num) {
+            if (isPlaying) return; 
+            playClickSound();
             
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-
-            const diffX = touchEndX - touchStartX;
-            const diffY = touchEndY - touchStartY;
-
-            // Запуск кулі від свайпу вгору
-            if (diffY < -30) {
-                ball.vx = diffX * 0.04; 
-                ball.vy = diffY * 0.04; 
-                ball.isMoving = true;
-            }
-        });
-
-        function checkCollisions() {
-            pins.forEach(pin => {
-                if (!pin.active) return;
-                
-                const pinX = pin.x * canvas.width;
-                const pinY = pin.y * canvas.height;
-                const pinRadius = 8;
-
-                const dist = Math.hypot(ball.x - pinX, ball.y - pinY);
-                if (dist < ball.radius + pinRadius) {
-                    pin.active = false; // Збиваємо кеглю
-                    score += 1;
-                    document.getElementById('score-val').innerText = score;
-                }
-            });
-        }
-
-        // Керування раундами та фреймами
-        function handleNextTurn() {
-            const activePinsCount = pins.filter(p => p.active).length;
-
-            if (activePinsCount === 0) {
-                // Якщо збито всі кеглі
-                if (currentThrow === 1) {
-                    messageToShow = "STRIKE! 🔥";
-                } else {
-                    messageToShow = "SPARE! ✨";
-                }
-                messageTimer = 90; // Ефект на 1.5 секунди
-                resetRound(true);  // Повний ресет кеглів
+            const btn = document.getElementById(`num-${num}`);
+            const index = selectedNumbers.indexOf(num);
+            
+            if (index > -1) {
+                selectedNumbers.splice(index, 1);
+                btn.classList.remove('selected');
             } else {
-                // Якщо якісь кеглі встояли
-                if (currentThrow === 1) {
-                    currentThrow = 2;
-                    document.getElementById('throw-val').innerText = currentThrow;
-                    resetRound(false); // Куля повертається, кеглі лишаються
-                } else {
-                    messageToShow = "Наступний фрейм!";
-                    messageTimer = 60;
-                    resetRound(true);  // Новий фрейм — нові кеглі
-                }
+                if (selectedNumbers.length >= maxSelections) return;
+                selectedNumbers.push(num);
+                btn.classList.add('selected');
             }
+            updateUI();
         }
 
-        function resetRound(fullReset) {
-            ball.isMoving = false;
-            ball.x = canvas.width / 2;
-            ball.y = canvas.height * 0.85;
-            ball.vx = 0;
-            ball.vy = 0;
-
-            if (fullReset) {
-                pins = generatePins();
-                currentThrow = 1;
-                if (currentFrame < 10) {
-                    currentFrame += 1;
-                } else {
-                    currentFrame = 1; // Зациклюємо гру після 10 фреймів
-                    score = 0;
-                    document.getElementById('score-val').innerText = score;
-                }
-                document.getElementById('frame-val').innerText = currentFrame + "/10";
-                document.getElementById('throw-val').innerText = currentThrow;
+        function updateUI() {
+            // АВТО-НАРАХУВАННЯ 100 UA ЯКЩО НЕМАЄ ГРОШЕЙ НА КВИТОК
+            if (balance < ticketCost && !isPlaying) {
+                balance += 100;
+                alert("🎁 Подарунок! Рахунок відновлено, тримайте +100 UA для гри!");
             }
+
+            const counter = document.getElementById('selected-counter');
+            const playBtn = document.getElementById('btn-play');
+            
+            counter.innerText = `Обрано: ${selectedNumbers.length} / ${maxSelections}`;
+            
+            if (selectedNumbers.length === maxSelections) {
+                counter.classList.add('ready');
+                if (!isPlaying) playBtn.disabled = false;
+                document.getElementById('status-message').innerText = "Квиток заповнено! Натисніть ГРАТИ!";
+            } else {
+                counter.classList.remove('ready');
+                playBtn.disabled = true;
+                document.getElementById('status-message').innerText = `Оберіть ще ${maxSelections - selectedNumbers.length} чисел`;
+            }
+            
+            document.getElementById('balance-display').innerText = `${balance} UA`;
+            localStorage.setItem('userBalance', balance);
         }
 
-        function update() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Доріжка
-            const laneWidth = canvas.width * 0.7;
-            const laneX = (canvas.width - laneWidth) / 2;
-            ctx.fillStyle = laneColor;
-            ctx.fillRect(laneX, 0, laneWidth, canvas.height);
-
-            // Розмітка доріжки (пунктир)
-            ctx.strokeStyle = '#b45309';
-            ctx.lineWidth = 3;
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.moveTo(laneX, 0); ctx.lineTo(laneX, canvas.height);
-            ctx.moveTo(laneX + laneWidth, 0); ctx.lineTo(laneX + laneWidth, canvas.height);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Фізика руху кулі
-            if (ball.isMoving) {
-                ball.x += ball.vx;
-                ball.y += ball.vy;
-                checkCollisions();
-
-                // Якщо куля покинула межі доріжки
-                if (ball.y < 0 || ball.x < 0 || ball.x > canvas.width) {
-                    handleNextTurn();
+        function quickSelect() {
+            if (isPlaying) return;
+            clearTicket();
+            while (selectedNumbers.length < maxSelections) {
+                let rand = Math.floor(Math.random() * totalNumbers) + 1;
+                if (!selectedNumbers.includes(rand)) {
+                    selectedNumbers.push(rand);
+                    document.getElementById(`num-${rand}`).classList.add('selected');
                 }
             }
+            updateUI();
+        }
 
-            // Рендер кеглів
-            pins.forEach(pin => {
-                if (!pin.active) return;
-                ctx.beginPath();
-                ctx.arc(pin.x * canvas.width, pin.y * canvas.height, 8, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-                ctx.closePath();
+        function clearTicket() {
+            if (isPlaying) return;
+            selectedNumbers.forEach(num => {
+                const btn = document.getElementById(`num-${num}`);
+                if(btn) {
+                    btn.classList.remove('selected');
+                    btn.classList.remove('match');
+                }
             });
-
-            // Рендер кулі
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#a855f7';
-            ctx.fill();
-            ctx.strokeStyle = '#7e22ce';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.closePath();
-
-            // Виведення тексту подій (Strike/Spare)
-            if (messageTimer > 0) {
-                ctx.fillStyle = "#f59e0b";
-                ctx.font = "bold 30px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(messageToShow, canvas.width / 2, canvas.height / 2);
-                messageTimer--;
+            // Також очищуємо всі інші підсвічування на полі
+            for (let i = 1; i <= totalNumbers; i++) {
+                document.getElementById(`num-${i}`).classList.remove('match');
             }
-
-            requestAnimationFrame(update);
+            selectedNumbers = [];
+            updateUI();
         }
 
-        update();
+        // --- ЛОГІКА РОЗІГРАШУ ТА ПЕРЕВІРКИ ---
+        async function startDraw() {
+            if (isPlaying || selectedNumbers.length < maxSelections) return;
+            
+            if (balance < ticketCost) {
+                alert("Недостатньо коштів для гри!");
+                return;
+            }
+
+            isPlaying = true;
+            balance -= ticketCost;
+            updateUI();
+            
+            document.getElementById('btn-play').disabled = true;
+            document.getElementById('status-message').innerText = "🎰 Лототрон запускається... Очікуйте куль!";
+            
+            // Очищення попередніх результатів з поля та контейнера куль
+            const ballsContainer = document.getElementById('balls-container');
+            ballsContainer.innerHTML = ''; 
+            for (let i = 1; i <= totalNumbers; i++) {
+                document.getElementById(`num-${i}`).classList.remove('match');
+            }
+            winningNumbers = [];
+
+            // Анімація випадіння 5 випадкових куль
+            while (winningNumbers.length < maxSelections) {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // затримка 1 сек між кулями
+                
+                let rand = Math.floor(Math.random() * totalNumbers) + 1;
+                if (!winningNumbers.includes(rand)) {
+                    winningNumbers.push(rand);
+                    playBallSound();
+                    
+                    // Візуалізація кулі
+                    const ball = document.createElement('div');
+                    ball.className = 'lottery-ball pop-in';
+                    ball.innerText = rand;
+                    ballsContainer.appendChild(ball);
+                    
+                    // Підсвічування на полі, якщо гравець вгадав це число
+                    if (selectedNumbers.includes(rand)) {
+                        document.getElementById(`num-${rand}`).classList.add('match');
+                    }
+                }
+            }
+
+            checkResults();
+        }
+
+        function checkResults() {
+            const matches = selectedNumbers.filter(num => winningNumbers.includes(num)).length;
+            let winAmount = 0;
+
+            if (matches === 5) {
+                winAmount = 50000; // ДЖЕКПОТ
+                document.getElementById('status-message').innerHTML = `👑 <b style="color:var(--gold-color)">ДЖЕКПОТ! Ви вгадали 5 чисел! Виграш: +${winAmount} UA!</b>`;
+                playWinSound();
+            } else if (matches === 4) {
+                winAmount = 1500;  // 4 числа
+                document.getElementById('status-message').innerHTML = `🔥 <b style="color:var(--accent-color)">Неймовірно! 4 числа! Виграш: +${winAmount} UA!</b>`;
+                playWinSound();
+            } else if (matches > 0) {
+                winAmount = matches * 10; // Невеликий бонус за 1-3 числа для утримання інтересу
+                document.getElementById('status-message').innerText = `🎉 Ви вгадали ${matches} чис. Виграш: +${winAmount} UA!`;
+                playWinSound();
+            } else {
+                document.getElementById('status-message').innerText = "😔 Цього разу не пощастило. Спробуйте ще раз!";
+                playLoseSound();
+            }
+
+            balance += winAmount;
+            isPlaying = false;
+            
+            if (winAmount >= 1500) {
+                setTimeout(() => {
+                    alert(`💳 Ваш виграш ${winAmount} UA доступний для швидкого виведення на TON-гаманець!`);
+                }, 1200);
+            }
+
+            updateUI();
+        }
+
+        // --- ЗВУКОВИЙ СИНТЕЗАТОР (Web Audio API) ---
+        function playClickSound() { playTone(440, 'sine', 0.05); }
+        function playBallSound() { playTone(587.33, 'triangle', 0.08); }
+        function playLoseSound() { playTone(220, 'sawtooth', 0.3); }
+        function playWinSound() { 
+            playTone(523.25, 'sine', 0.08); 
+            setTimeout(() => playTone(659.25, 'sine', 0.08), 80);
+            setTimeout(() => playTone(783.99, 'sine', 0.25), 160);
+        }
+
+        function playTone(freq, type, duration) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(0.05, ctx.currentTime); // Комфортна гучність
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch(e) { /* Заглушка, якщо браузер заблокував звук до першої взаємодії */ }
+        }
     </script>
 </body>
 </html>
