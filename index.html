@@ -159,7 +159,6 @@
             if (!walletConnected || isPlaying) return;
             document.getElementById('status-message').innerText = "⏳ Очікування підтвердження транзакції...";
             
-            // Надійний формат суми через BigInt
             const nanoTons = BigInt(10000000); // 0.01 TON
             const transaction = {
                 validUntil: Math.floor(Date.now() / 1000) + 180,
@@ -212,9 +211,7 @@
         }
 
         async function startDraw() {
-            if (isPlaying || selectedSelections < maxSelections) {
-                if (selectedNumbers.length < maxSelections) return;
-            }
+            if (isPlaying || selectedNumbers.length < maxSelections) return;
             
             if (balance < ticketCost) {
                 balance += 100;
