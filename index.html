@@ -21,8 +21,8 @@
 
         .header-controls { width: 100%; max-width: 500px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
 
-        .btn-premium-buy { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; border: none; padding: 10px 14px; font-size: 13px; font-weight: bold; border-radius: 20px; cursor: pointer; box-shadow: 0 4px 10px rgba(168, 85, 247, 0.4); transition: transform 0.2s; }
-        .btn-premium-buy:disabled { background: #334155; cursor: not-allowed; box-shadow: none; opacity: 0.6; }
+        .btn-withdraw-top { background: linear-gradient(135deg, #eab308, #ca8a04); color: black; border: none; padding: 10px 14px; font-size: 13px; font-weight: bold; border-radius: 20px; cursor: pointer; box-shadow: 0 4px 10px rgba(234, 179, 8, 0.3); transition: all 0.2s; }
+        .btn-withdraw-top:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; opacity: 0.6; }
 
         .container { max-width: 500px; width: 100%; background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
 
@@ -67,7 +67,7 @@
 <body>
 
     <div class="header-controls">
-        <button class="btn-premium-buy" id="btn-buy-ua" onclick="buyUABalance()" disabled>⭐ Купити +500 UA (0.01 TON)</button>
+        <button class="btn-withdraw-top" id="btn-withdraw" onclick="withdrawFunds()" disabled>💳 Вивести (Мінімум: 1000 UA)</button>
         <div id="ton-connect-btn"></div>
     </div>
 
@@ -84,7 +84,6 @@
             <button class="btn btn-primary" id="btn-play" onclick="startDraw()" disabled>ГРАТИ (Вартість: 10 UA)</button>
             <button class="btn btn-secondary" id="btn-auto" onclick="quickSelect()">⚡ Автовибір</button>
             <button class="btn btn-secondary" id="btn-clear" onclick="clearTicket()">Очистити</button>
-            <button class="btn" id="btn-withdraw" style="background: #eab308; color: black; display: none;" onclick="withdrawFunds()">💳 Вивести Преміум виграш</button>
         </div>
     </div>
 
@@ -123,9 +122,7 @@
         });
 
         tonConnectUI.onStatusChange(wallet => {
-            const buyBtn = document.getElementById('btn-buy-ua');
-            if (wallet) { walletConnected = true; buyBtn.disabled = false; buyBtn.innerText = "⭐ Купити +500 UA (0.01 TON)"; } 
-            else { walletConnected = false; buyBtn.disabled = true; buyBtn.innerText = "⭐ Преміум (Підключіть гаманець)"; }
+            walletConnected = !!wallet;
             updateUI();
         });
 
@@ -149,50 +146,44 @@
 
         function updateUI() {
             const withdrawBtn = document.getElementById('btn-withdraw');
-            if (walletConnected && balance >= 5000) withdrawBtn.style.display = 'block'; else withdrawBtn.style.display = 'none';
+            
+            if (!walletConnected) {
+                withdrawBtn.disabled = true;
+                withdrawBtn.innerText = "💳 Вивести (Підключіть гаманець)";
+            } else if (balance < 1000) {
+                withdrawBtn.disabled = true;
+                withdrawBtn.innerText = `💳 Вивести (Мінімум: 1000 UA)`;
+            } else {
+                withdrawBtn.disabled = false;
+                withdrawBtn.innerText = `💳 Вивести ${balance} UA`;
+            }
+
             const counter = document.getElementById('selected-counter');
             counter.innerText = `Обрано: ${selectedNumbers.length} / ${maxSelections}`;
+            
             const playBtn = document.getElementById('btn-play');
-            if (selectedNumbers.length === maxSelections) { if (!isPlaying) playBtn.disabled = false; document.getElementById('status-message').innerText = "Квиток заповнено! Натисніть ГРАТИ!"; } 
-            else { playBtn.disabled = true; document.getElementById('status-message').innerText = `Оберіть ще ${maxSelections - selectedNumbers.length} чисел`; }
+            if (selectedNumbers.length === maxSelections) { 
+                if (!isPlaying) playBtn.disabled = false; 
+                document.getElementById('status-message').innerText = "Квиток заповнено! Натисніть ГРАТИ!"; 
+            } else { 
+                playBtn.disabled = true; 
+                document.getElementById('status-message').innerText = `Оберіть ще ${maxSelections - selectedNumbers.length} чисел`; 
+            }
+            
             document.getElementById('balance-display').innerText = `${balance} UA`;
             localStorage.setItem('userBalance', balance);
         }
 
-        async function buyUABalance() {
-            if (!walletConnected || isPlaying) return;
-            initAudio();
-            document.getElementById('status-message').innerText = "⏳ Очікування підтвердження транзакції...";
-            
-            // Застосовуємо валідну порожню Boc-комірку (payload), яку TON Connect SDK прийме без помилок
-            const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 360, 
-                messages: [{ 
-                    address: "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw", 
-                    amount: "10000000",
-                    payload: "te6ccgEBAQEAAgAASA=="
-                }]
-            };
-            
-            try {
-                await tonConnectUI.sendTransaction(transaction);
-                playSound('bonus');
-                balance += 500;
-                updateUI();
-                document.getElementById('status-message').innerText = "⭐ Баланс успішно поповнено на +500 UA!";
-                alert("⭐ Успішно! Ваш баланс поповнено на +500 UA!");
-            } catch (e) { 
-                console.error("Помилка TON Connect:", e);
-                document.getElementById('status-message').innerText = "❌ Помилка транзакції.";
-                let errorText = e.message || JSON.stringify(e) || "Транзакцію скасовано користувачем";
-                alert(`❌ Статус транзакції:\n${errorText}`); 
-                updateUI(); 
-            }
-        }
-
         function withdrawFunds() {
-            if(!walletConnected) return;
-            const message = encodeURIComponent(`🎰 Запит на виведення Преміум виграшу!\n\n💰 Сума: ${balance} UA\n💳 Гаманець: ${tonConnectUI.account.address}\n🎮 Гра: UA Lottery 5 із 36`);
+            if (!walletConnected || balance < 1000) return;
+            initAudio();
+            
+            let walletAddress = "Невідомо";
+            if (tonConnectUI.account && tonConnectUI.account.address) {
+                walletAddress = tonConnectUI.account.address;
+            }
+            
+            const message = encodeURIComponent(`🎰 Запит на виведення виграшу!\n\n💰 Сума до виведення: ${balance} UA\n💳 Гаманець гравця: ${walletAddress}\n🎮 Гра: UA Lottery 5 із 36`);
             window.location.href = `https://t.me/Leslav?text=${message}`;
         }
 
@@ -217,7 +208,13 @@
         async function startDraw() {
             if (isPlaying || selectedNumbers.length < maxSelections) return;
             initAudio();
-            if (balance < ticketCost) { playSound('bonus'); balance += 100; document.getElementById('status-message').innerText = "🎁 Безкоштовний бонус +100 UA нараховано!"; document.getElementById('balance-display').innerText = `${balance} UA`; await new Promise(r => setTimeout(r, 1200)); }
+            if (balance < ticketCost) { 
+                playSound('bonus'); 
+                balance += 100; 
+                document.getElementById('status-message').innerText = "🎁 Безкоштовний бонус +100 UA нараховано!"; 
+                document.getElementById('balance-display').innerText = `${balance} UA`; 
+                await new Promise(r => setTimeout(r, 1200)); 
+            }
             isPlaying = true; balance -= ticketCost; updateUI();
             document.getElementById('status-message').innerText = "🎰 Лототрон запускається...";
             document.getElementById('balls-container').innerHTML = '';
