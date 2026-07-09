@@ -89,6 +89,61 @@
     </div>
 
     <script>
+        // Безпечний аудіо-рушій (Web Audio API). Окремий блок, який не зламає інтерфейс
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.log("Web Audio API не підтримується");
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(400, now);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now); osc.stop(now + 0.05);
+                } else if (type === 'ball') {
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                    gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now); osc.stop(now + 0.15);
+                } else if (type === 'win') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now); osc.stop(now + 0.4);
+                } else if (type === 'lose') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+                    gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'bonus') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2);
+                }
+            } catch (e) { console.log("Помилка відтворення звуку:", e); }
+        }
+
         const totalNumbers = 36, maxSelections = 5, ticketCost = 10;
         let selectedNumbers = [], winningNumbers = [], isPlaying = false, needResetAfterGame = false, walletConnected = false;
         
@@ -120,7 +175,7 @@
         for (let i = 1; i <= totalNumbers; i++) {
             const btn = document.createElement('button');
             btn.className = 'num-btn'; btn.innerText = i; btn.id = `num-${i}`;
-            btn.onclick = () => toggleNumber(i);
+            btn.onclick = () => { playSound('click'); toggleNumber(i); };
             gridContainer.appendChild(btn);
         }
 
@@ -157,6 +212,7 @@
 
         async function buyUABalance() {
             if (!walletConnected || isPlaying) return;
+            initAudio();
             document.getElementById('status-message').innerText = "⏳ Очікування підтвердження транзакції...";
             
             const nanoTons = BigInt(10000000); // 0.01 TON
@@ -170,6 +226,7 @@
             
             try {
                 await tonConnectUI.sendTransaction(transaction);
+                playSound('bonus');
                 balance += 500;
                 updateUI();
                 document.getElementById('status-message').innerText = "⭐ Баланс успішно поповнено на +500 UA!";
@@ -190,6 +247,7 @@
 
         function quickSelect() {
             if (isPlaying) return;
+            playSound('click');
             clearTicket();
             needResetAfterGame = false;
             while (selectedNumbers.length < maxSelections) {
@@ -201,6 +259,7 @@
 
         function clearTicket() {
             if (isPlaying) return;
+            playSound('click');
             for (let i = 1; i <= totalNumbers; i++) {
                 const btn = document.getElementById(`num-${i}`);
                 if (btn) { btn.classList.remove('selected', 'match'); }
@@ -212,8 +271,10 @@
 
         async function startDraw() {
             if (isPlaying || selectedNumbers.length < maxSelections) return;
+            initAudio();
             
             if (balance < ticketCost) {
+                playSound('bonus');
                 balance += 100;
                 document.getElementById('status-message').innerText = "🎁 Безкоштовний бонус +100 UA нараховано!";
                 document.getElementById('balance-display').innerText = `${balance} UA`;
@@ -233,6 +294,7 @@
                 let rand = Math.floor(Math.random() * totalNumbers) + 1;
                 if (!winningNumbers.includes(rand)) {
                     winningNumbers.push(rand);
+                    playSound('ball');
                     const ball = document.createElement('div');
                     ball.className = 'lottery-ball'; ball.innerText = rand;
                     document.getElementById('balls-container').appendChild(ball);
@@ -244,8 +306,8 @@
             let win = (matches === 5) ? 5000 : (matches === 4) ? 500 : (matches * 10);
             balance += win;
             
-            if (win > 0) { document.getElementById('status-message').innerText = `🎉 Перемога! Виграш: ${win} UA`; } 
-            else { document.getElementById('status-message').innerText = "😔 Не пощастило. Спробуйте ще раз!"; }
+            if (win > 0) { playSound('win'); document.getElementById('status-message').innerText = `🎉 Перемога! Виграш: ${win} UA`; } 
+            else { playSound('lose'); document.getElementById('status-message').innerText = "😔 Не пощастило. Спробуйте ще раз!"; }
             
             isPlaying = false; needResetAfterGame = true; updateUI();
         }
