@@ -23,7 +23,7 @@
         .header-controls { width: 100%; max-width: 500px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
 
         .btn-premium-buy { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; border: none; padding: 10px 14px; font-size: 13px; font-weight: bold; border-radius: 20px; cursor: pointer; box-shadow: 0 4px 10px rgba(168, 85, 247, 0.4); transition: transform 0.2s; }
-        .btn-premium-buy:disabled { background: #334155; cursor: not-allowed; }
+        .btn-premium-buy:disabled { background: #334155; cursor: not-allowed; box-shadow: none; }
 
         .container { max-width: 500px; width: 100%; background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
 
@@ -33,21 +33,37 @@
 
         .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 20px; }
         .num-btn { background: #334155; color: var(--text-color); border: none; padding: 12px 0; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-        .num-btn.selected { background: var(--accent-color); color: #000; transform: scale(1.05); }
+        .num-btn.selected { background: var(--accent-color); color: #000; transform: scale(1.05); box-shadow: 0 0 10px var(--accent-color); }
         .num-btn.match { background: var(--gold-color) !important; color: #000 !important; animation: pulse 0.5s infinite alternate; }
 
+        /* ПОВЕРНУВ СТИЛІ ДЛЯ КУЛЬОК */
         .balls-display { display: flex; justify-content: center; gap: 10px; min-height: 60px; margin: 20px 0; align-items: center; }
-        .lottery-ball { width: 45px; height: 45px; background: radial-gradient(circle at 30% 30%, #ffedd5, #ea580c); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; animation: popIn 0.4s; }
+        .lottery-ball { 
+            width: 45px; 
+            height: 45px; 
+            background: radial-gradient(circle at 30% 30%, #ffedd5, #ea580c); 
+            color: #fff; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: bold; 
+            font-size: 18px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
 
         .controls { display: flex; flex-direction: column; gap: 10px; }
-        .btn { padding: 14px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; }
+        .btn { padding: 14px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
         .btn-primary { background: var(--success-color); color: white; }
-        .btn-primary:disabled { background: #1e293b; color: #64748b; }
+        .btn-primary:disabled { background: #1e293b; color: #64748b; border: 1px solid #334155; }
         .btn-secondary { background: #475569; color: white; }
 
-        #status-message { margin: 15px 0; font-size: 15px; color: #94a3b8; }
+        #status-message { margin: 15px 0; font-size: 15px; color: #94a3b8; min-height: 22px; }
+        #selected-counter { font-weight: bold; margin-bottom: 5px; }
+        #selected-counter.ready { color: var(--success-color); }
         
-        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes pulse { 0% { box-shadow: 0 0 5px var(--gold-color); } 100% { box-shadow: 0 0 15px var(--gold-color); } }
     </style>
 </head>
@@ -71,7 +87,6 @@
             <button class="btn btn-primary" id="btn-play" onclick="startDraw()" disabled>ГРАТИ (Вартість: 100 UA)</button>
             <button class="btn btn-secondary" id="btn-auto" onclick="quickSelect()" disabled>⚡ Автовибір</button>
             <button class="btn btn-secondary" id="btn-clear" onclick="clearTicket()" disabled>Очистити</button>
-            <!-- Кнопка виводу -->
             <button class="btn" id="btn-withdraw" style="background: #eab308; color: black; display: none;" onclick="withdrawFunds()">💳 Вивести виграш (>5000 UA)</button>
         </div>
     </div>
@@ -101,6 +116,7 @@
                 document.getElementById('btn-auto').disabled = true;
                 document.getElementById('btn-clear').disabled = true;
                 document.getElementById('status-message').innerText = "Підключіть гаманець";
+                clearTicket();
             }
         });
 
@@ -111,16 +127,17 @@
 
         async function buyUABalance() {
             if (!walletConnected) return;
+            document.getElementById('status-message').innerText = "⏳ Очікування підтвердження транзакції...";
             const transaction = {
                 validUntil: Math.floor(Date.now() / 1000) + 120,
-                messages: [{ address: "ВАША_АДРЕСА_ГАМАНЦЯ_ТУТ", amount: "10000000" }]
+                messages: [{ address: "UQBh_d7w5_rshHwS3pZ8zXOnM2n4b0v5R_YpXpHCJ8GwA_Hh", amount: "10000000" }]
             };
             try {
                 await tonConnectUI.sendTransaction(transaction);
                 balance += 500;
                 updateUI();
                 alert("Успішно! +500 UA");
-            } catch (e) { alert("Транзакцію скасовано"); }
+            } catch (e) { alert("Транзакцію скасовано"); updateUI(); }
         }
 
         const gridContainer = document.getElementById('grid-container');
@@ -144,8 +161,20 @@
         function updateUI() {
             if (!walletConnected) return;
             document.getElementById('btn-withdraw').style.display = (balance >= 5000) ? 'block' : 'none';
-            document.getElementById('selected-counter').innerText = `Обрано: ${selectedNumbers.length} / ${maxSelections}`;
-            document.getElementById('btn-play').disabled = (selectedNumbers.length !== maxSelections || isPlaying);
+            
+            const counter = document.getElementById('selected-counter');
+            counter.innerText = `Обрано: ${selectedNumbers.length} / ${maxSelections}`;
+            
+            if (selectedNumbers.length === maxSelections) {
+                counter.classList.add('ready');
+                if (!isPlaying) document.getElementById('btn-play').disabled = false;
+                document.getElementById('status-message').innerText = "Квиток заповнено! Натисніть ГРАТИ!";
+            } else {
+                counter.classList.remove('ready');
+                document.getElementById('btn-play').disabled = true;
+                document.getElementById('status-message').innerText = `Оберіть ще ${maxSelections - selectedNumbers.length} чисел`;
+            }
+            
             document.getElementById('balance-display').innerText = `${balance} UA`;
             localStorage.setItem('userBalance', balance);
         }
@@ -153,6 +182,7 @@
         function quickSelect() {
             if (isPlaying || !walletConnected) return;
             clearTicket();
+            needResetAfterGame = false;
             while (selectedNumbers.length < maxSelections) {
                 let rand = Math.floor(Math.random() * totalNumbers) + 1;
                 if (!selectedNumbers.includes(rand)) { selectedNumbers.push(rand); document.getElementById(`num-${rand}`).classList.add('selected'); }
@@ -175,6 +205,7 @@
             if (isPlaying || balance < ticketCost) return;
             isPlaying = true; balance -= ticketCost; updateUI();
             document.getElementById('status-message').innerText = "🎰 Лототрон запускається...";
+            document.getElementById('balls-container').innerHTML = '';
             
             winningNumbers = [];
             while (winningNumbers.length < maxSelections) {
